@@ -16,6 +16,8 @@ module.exports = function (grunt) {
   // Load grunt tasks automatically
   require('load-grunt-tasks')(grunt);
 
+  var browserSync = require("browser-sync");
+
   grunt.loadNpmTasks('grunt-include-source');
 
   // Configurable paths
@@ -55,7 +57,7 @@ module.exports = function (grunt) {
       },
       js: {
         files: ['<%= config.app %>/scripts/{,*/}*.js'],
-        tasks: ['jshint', 'copy:jsdev'],
+        tasks: ['jshint', 'copy:jsdev', 'bs-reload'],
         options: {
           livereload: true
         }
@@ -70,7 +72,7 @@ module.exports = function (grunt) {
       sass: {
         files: ['<%= config.app %>/styles/{,*/}*.{scss,sass}'],
         // tasks: ['sass:server', 'autoprefixer']
-        tasks: ['sass:dev', 'autoprefixer']
+        tasks: ['sass:dev', 'autoprefixer', 'bs-reload']
       },
       styles: {
         files: ['<%= config.app %>/styles/{,*/}*.css'],
@@ -403,6 +405,25 @@ module.exports = function (grunt) {
       }
     },
 
+    shell: {
+        vagrantHalt: {
+            command: 'vagrant halt',
+            options: {
+              execOptions: {
+                cwd: '538_nl/'
+              }
+            }
+        },
+        vagrantUp: {
+            command: 'vagrant up --provision',
+            options: {
+              execOptions: {
+                cwd: '538_nl/'
+              }
+            }
+        }
+    },
+
     // Copies remaining files to places other tasks can use
     copy: {
       jsdev: {
@@ -567,6 +588,26 @@ module.exports = function (grunt) {
     ]);
   });
 
+  grunt.registerTask("bs-init", function () {
+      var done = this.async();
+      browserSync({
+          proxy: "127.0.0.1"
+      }, function (err, bs) {
+          done();
+      });
+  });
+  grunt.registerTask("bs-reload", function () {
+        browserSync.reload('*');
+  });
+
+  grunt.registerTask('start', [
+    'build-dev',
+    'force:shell:vagrantHalt',
+    'force:shell:vagrantUp',
+    'bs-init',
+    'watch'
+  ]);
+
   grunt.registerTask('build-prod', [
     'clean:dist',
     'wiredep',
@@ -592,8 +633,7 @@ module.exports = function (grunt) {
     'uglify:dev',
     'copy:dev',
     'modernizr:dev',
-    'includeSource:dev',
-    'watch'
+    'includeSource:dev'
   ]);
 
   grunt.registerTask('default', [
